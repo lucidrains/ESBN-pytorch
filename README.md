@@ -1,3 +1,5 @@
+<img src="./esbn.png" width="600px"></img>
+
 ## ESBN-pytorch
 
 Usable implementation of <a href="https://arxiv.org/abs/2012.14601">Emerging Symbol Binding Network</a> (ESBN), in Pytorch.
