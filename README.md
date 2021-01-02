@@ -8,6 +8,8 @@ The input image representation are cast as memory values, and are explicitly bou
 
 This decoupling / indirection of sensory to abstract processing allows the network to outperform all previous approaches, including transformers.
 
+Update: On rereading, learned that it only beat a one layer transformer with 8 heads. That makes me feel better.
+
 ## Citations
 
 ```bibtex
