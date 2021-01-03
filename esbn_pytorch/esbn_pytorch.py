@@ -1,4 +1,5 @@
 import torch
+from functools import partial
 from torch import nn, einsum
 from einops import repeat, rearrange
 
@@ -12,6 +13,11 @@ def safe_cat(t, el, dim = 0):
         return el
     return torch.cat((t, el), dim = dim)
 
+def map_fn(fn, *args, **kwargs):
+    def inner(*arr):
+        return map(lambda t: fn(t, *args, **kwargs), arr)
+    return inner
+
 # classes
 
 class ESBN(nn.Module):
@@ -21,7 +27,8 @@ class ESBN(nn.Module):
         value_dim = 64,
         key_dim = 64,
         hidden_dim = 512,
-        output_dim = 4
+        output_dim = 4,
+        encoder = None
     ):
         super().__init__()
         self.h0 = torch.zeros(hidden_dim)
@@ -41,7 +48,7 @@ class ESBN(nn.Module):
             nn.Conv2d(64, 64, kernel_size = 4, stride = 2),
             nn.Flatten(1),
             nn.Linear(4 * 64, value_dim)
-        )
+        ) if not exists(encoder) else encoder
 
         self.to_confidence = nn.Linear(1, 1)
 
@@ -50,7 +57,7 @@ class ESBN(nn.Module):
         Mk = None
         Mv = None
 
-        hx, cx, kx, k0 = map(lambda t: repeat(t, 'd -> b d', b = b), (self.h0, self.c0, self.k0, self.k0))
+        hx, cx, kx, k0 = map_fn(repeat, 'd -> b d', b = b)(self.h0, self.c0, self.k0, self.k0)
         out = []
 
         for ind, image in enumerate(images):
@@ -74,8 +81,9 @@ class ESBN(nn.Module):
                 # then weighted sum of all memory keys by attention of memory values
                 kr = gt * (wkt * torch.cat((Mk, ck), dim = -1)).sum(dim = 1)
 
-            Mk = safe_cat(Mk, kwt.unsqueeze(1), dim = 1)
-            Mv = safe_cat(Mv, z.unsqueeze(1), dim = 1)
+            kwt, z = map_fn(rearrange, 'b d -> b () d')(kwt, z)
+            Mk = safe_cat(Mk, kwt, dim = 1)
+            Mv = safe_cat(Mv, z, dim = 1)
             out.append(yt)
 
         return torch.stack(out)
