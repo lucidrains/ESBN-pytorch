@@ -14,7 +14,12 @@ This decoupling / indirection of sensory to abstract processing allows the netwo
 import torch
 from esbn_pytorch import ESBN
 
-model = ESBN()
+model = ESBN(
+    value_dim = 64,
+    key_dim = 64,
+    hidden_dim = 512,
+    output_dim = 4
+)
 
 images = torch.randn(3, 1, 3, 32, 32) # (n, b, c, h, w)
 model(images) # (3, 4) # (n, b, o)

@@ -1,6 +1,6 @@
 import torch
 from torch import nn, einsum
-from einops import repeat
+from einops import repeat, rearrange
 
 # helpers
 
@@ -24,8 +24,8 @@ class ESBN(nn.Module):
         output_dim = 4
     ):
         super().__init__()
-        self.h0 = torch.zeros(1, 512)
-        self.c0 = torch.zeros(1, 512)
+        self.h0 = torch.zeros(1, hidden_dim)
+        self.c0 = torch.zeros(1, hidden_dim)
         self.k0 = torch.zeros(1, key_dim + 1)
 
         self.rnn = nn.LSTMCell(key_dim + 1, hidden_dim)
@@ -39,9 +39,10 @@ class ESBN(nn.Module):
             nn.Conv2d(32, 64, kernel_size = 4, stride = 2),
             nn.ReLU(),
             nn.Conv2d(64, 64, kernel_size = 4, stride = 2),
+            nn.Flatten(1),
+            nn.Linear(4 * 64, value_dim)
         )
 
-        self.to_out = nn.Linear(4 * 64, value_dim)
         self.to_confidence = nn.Linear(1, 1)
 
     def forward(self, images):
@@ -55,18 +56,24 @@ class ESBN(nn.Module):
 
         for ind, image in enumerate(images):
             is_first = ind == 0
-            encoded = self.encoder(image)
-            z = self.to_out(encoded.flatten(1))
+            z = self.encoder(image)
             hx, cx = self.rnn(kx, (hx, cx))
             yt, gt, kwt = self.to_output(hx), self.to_gate(hx), self.to_key(hx)
 
             if is_first:
                 kx = self.k0
             else:
+                # attention
                 sim = einsum('b n d, b d -> b n', Mv, z)
                 wkt = sim.softmax(dim = -1)
-                ck = self.to_confidence(sim.unsqueeze(dim = -1)).sigmoid()
-                kr = gt * (wkt.unsqueeze(-1) * torch.cat((Mk, ck), dim = -1)).sum(dim = 1)
+
+                # calculate confidence
+                sim, wkt = map(lambda t: rearrange(t, 'b n -> b n ()'), (sim, wkt))
+                ck = self.to_confidence(sim).sigmoid()
+
+                # concat confidence to memory keys
+                # then weighted sum of all memory keys by attention of memory values
+                kr = gt * (wkt * torch.cat((Mk, ck), dim = -1)).sum(dim = 1)
 
             Mk = safe_cat(Mk, kwt.unsqueeze(1), dim = 1)
             Mv = safe_cat(Mv, z.unsqueeze(1), dim = 1)
