@@ -21,8 +21,8 @@ model = ESBN(
     output_dim = 4
 )
 
-images = torch.randn(3, 1, 3, 32, 32) # (n, b, c, h, w)
-model(images) # (3, 4) # (n, b, o)
+images = torch.randn(3, 2, 3, 32, 32) # (n, b, c, h, w)
+model(images) # (3, 2, 4) # (n, b, o)
 ```
 
 ## Citations

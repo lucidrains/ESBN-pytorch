@@ -24,9 +24,9 @@ class ESBN(nn.Module):
         output_dim = 4
     ):
         super().__init__()
-        self.h0 = torch.zeros(1, hidden_dim)
-        self.c0 = torch.zeros(1, hidden_dim)
-        self.k0 = torch.zeros(1, key_dim + 1)
+        self.h0 = torch.zeros(hidden_dim)
+        self.c0 = torch.zeros(hidden_dim)
+        self.k0 = torch.zeros(key_dim + 1)
 
         self.rnn = nn.LSTMCell(key_dim + 1, hidden_dim)
         self.to_gate = nn.Linear(hidden_dim, 1)
@@ -46,12 +46,11 @@ class ESBN(nn.Module):
         self.to_confidence = nn.Linear(1, 1)
 
     def forward(self, images):
+        b = images.shape[1]
         Mk = None
         Mv = None
 
-        hx = self.h0
-        cx = self.c0
-        kx = self.k0
+        hx, cx, kx, k0 = map(lambda t: repeat(t, 'd -> b d', b = b), (self.h0, self.c0, self.k0, self.k0))
         out = []
 
         for ind, image in enumerate(images):
@@ -61,7 +60,7 @@ class ESBN(nn.Module):
             yt, gt, kwt = self.to_output(hx), self.to_gate(hx), self.to_key(hx)
 
             if is_first:
-                kx = self.k0
+                kx = k0
             else:
                 # attention
                 sim = einsum('b n d, b d -> b n', Mv, z)
