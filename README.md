@@ -1,6 +1,6 @@
 <img src="./esbn.png" width="600px"></img>
 
-## Emerging Symbol Binding Network (ESBN) - Pytorch (wip)
+## Emerging Symbol Binding Network (ESBN) - Pytorch
 
 Usable implementation of <a href="https://arxiv.org/abs/2012.14601">Emerging Symbol Binding Network</a> (ESBN), in Pytorch. They propose to have the main recurrent neural network interact with the input image representations only through a set of memory key / values.
 
