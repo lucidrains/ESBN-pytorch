@@ -74,7 +74,7 @@ class ESBN(nn.Module):
                 wkt = sim.softmax(dim = -1)
 
                 # calculate confidence
-                sim, wkt = map(lambda t: rearrange(t, 'b n -> b n ()'), (sim, wkt))
+                sim, wkt = map_fn(rearrange, 'b n -> b n ()')(sim, wkt)
                 ck = self.to_confidence(sim).sigmoid()
 
                 # concat confidence to memory keys
