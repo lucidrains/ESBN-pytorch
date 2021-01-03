@@ -8,6 +8,18 @@ The input image representation are cast as memory values, and are explicitly bou
 
 This decoupling / indirection of sensory to abstract processing allows the network to outperform all previous approaches, including transformers.
 
+## Usage
+
+```python
+import torch
+from esbn_pytorch import ESBN
+
+model = ESBN()
+
+images = torch.randn(3, 1, 3, 32, 32) # (n, b, c, h, w)
+model(images) # (3, 4) # (n, b, o)
+```
+
 ## Citations
 
 ```bibtex
