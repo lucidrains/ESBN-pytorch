@@ -64,26 +64,26 @@ class ESBN(nn.Module):
             is_first = ind == 0
             z = self.encoder(image)
             hx, cx = self.rnn(kx, (hx, cx))
-            yt, gt, kwt = self.to_output(hx), self.to_gate(hx), self.to_key(hx)
+            y, g, kw = self.to_output(hx), self.to_gate(hx), self.to_key(hx)
 
             if is_first:
                 kx = k0
             else:
                 # attention
                 sim = einsum('b n d, b d -> b n', Mv, z)
-                wkt = sim.softmax(dim = -1)
+                wk = sim.softmax(dim = -1)
 
                 # calculate confidence
-                sim, wkt = map_fn(rearrange, 'b n -> b n ()')(sim, wkt)
+                sim, wk = map_fn(rearrange, 'b n -> b n ()')(sim, wk)
                 ck = self.to_confidence(sim).sigmoid()
 
                 # concat confidence to memory keys
                 # then weighted sum of all memory keys by attention of memory values
-                kr = gt * (wkt * torch.cat((Mk, ck), dim = -1)).sum(dim = 1)
+                kr = g * (wk * torch.cat((Mk, ck), dim = -1)).sum(dim = 1)
 
-            kwt, z = map_fn(rearrange, 'b d -> b () d')(kwt, z)
-            Mk = safe_cat(Mk, kwt, dim = 1)
+            kw, z = map_fn(rearrange, 'b d -> b () d')(kw, z)
+            Mk = safe_cat(Mk, kw, dim = 1)
             Mv = safe_cat(Mv, z, dim = 1)
-            out.append(yt)
+            out.append(y)
 
         return torch.stack(out)
