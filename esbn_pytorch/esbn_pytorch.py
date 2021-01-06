@@ -79,7 +79,7 @@ class ESBN(nn.Module):
 
                 # concat confidence to memory keys
                 # then weighted sum of all memory keys by attention of memory values
-                kx = g * (wk * torch.cat((Mk, ck), dim = -1)).sum(dim = 1)
+                kx = g.sigmoid() * (wk * torch.cat((Mk, ck), dim = -1)).sum(dim = 1)
 
             kw, z = map_fn(rearrange, 'b d -> b () d')(kw, z)
             Mk = safe_cat(Mk, kw, dim = 1)
